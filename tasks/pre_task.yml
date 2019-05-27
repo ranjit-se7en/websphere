@@ -1,0 +1,22 @@
+---
+- name: Install setfacl and unzip on RedHat
+  become: yes
+  yum:
+    name: ['acl', 'unzip', 'psmisc']
+    state: present
+
+- name: Create the {{ibm_user}} user
+  become: true
+  become_user: root
+  user:
+    name: "{{ibm_user}}"
+
+- name: Create the {{ibm_root}} directory
+  become: true
+  become_user: root
+  file:
+    path: "{{ibm_root}}"
+    state: directory
+    owner: "{{ibm_user}}"
+    group: "{{ibm_user}}"
+    mode: "{{ ibm_mode }}"

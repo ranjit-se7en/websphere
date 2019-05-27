@@ -1,0 +1,35 @@
+---
+  - name: Create Downloads directory to Download Packages.
+    file:
+      path: /tmp/Downloads
+      state: directory
+      mode: "{{ was_mode }}"
+      owner: "{{ was_user }}"
+      group: "{{ was_group }}"
+    register: Download_Folder
+
+  - debug: msg="{{ Download_Folder }}"
+
+  - name: Download IBM InstallationManager for Linux
+    become: true
+    become_user: "{{ was_user }}"
+    get_url:
+       url: "{{ iim_url }}"
+       dest: "{{ Download_Folder.path }}"
+       mode: "{{ was_mode }}"
+
+  - name: Download IBM JDK for Linux
+    become: true
+    become_user: "{{ was_user }}"
+    get_url:
+      url: "{{ jdk_url }}"
+      dest: "{{ Download_Folder.path }}"
+      mode: "{{ was_mode }}"
+
+  - name: Download IBM WAS Installer for Linux
+    become: true
+    become_user: "{{ was_user }}"
+    get_url:
+       url: "{{ was_url }}"
+       dest: "{{ Download_Folder.path }}"
+       mode: "{{ was_mode }}"

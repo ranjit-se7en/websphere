@@ -1,0 +1,37 @@
+ibm_user: was
+ibm_root: /opt/IBM
+ibm_repo: "{{ ibm_root }}/repo"
+ibm_mode: "0750"
+iim_version: "1.8"
+iim_path: "{{ ibm_root }}/InstallationManager"
+iim_repo: "{{ ibm_repo }}/IIM"
+iim_tmp: "{{ ibm_root }}/tmp"
+iim_group: "{{ iim_user }}"
+iim_mode: "{{ ibm_mode }}"
+ibm_repo: "{{ ibm_root }}/repo"
+ibm_shared_path: "{{ ibm_root }}/Shared"
+was_repo: "{{ ibm_repo }}/WAS"
+jdk_repo: "{{ ibm_repo }}/JDK"
+iim_tmp: "{{ ibm_root }}/tmp"
+was_user: "{{ ibm_user }}"
+was_group: "{{ was_user }}"
+state: installed
+profile_state: started
+was_nd: false
+was_version: '9.0'
+was_mode: "{{ ibm_mode }}"
+was_path: "{{ibm_root}}/WebSphere/AppServer"
+was_profiles_path: "{{ was_path }}/profiles"
+was_type: "BASE"
+was_imcl_package_regex: "com.ibm.websphere.{{ was_type }}.v[0-9]+_([0-9]+.[0-9]+.[0-9]+.[0-9]+)"
+was_imcl_package_name: "com.ibm.websphere.{{ was_type }}.v90"
+jdk_imcl_package_name: "com.ibm.java.jdk.v8"
+iim_url: 
+was_url: 
+jdk_url: 
+iim_installer_name: agent.installer.linux.gtk.x86_64_1.8.5000.20160506_1125.zip
+was_installer_name: WAS.REPO.9000.BASE.zip
+sdk_installer_name: ibm-java-sdk-8.0-3.0-linux-x64-installmgr.zip
+iim_install_bin: "{{iim_tmp}}/{{iim_installer_name}}"
+was_install_bin: "{{iim_tmp}}/{{was_installer_name}}"
+sdk_install_bin: "{{iim_tmp}}/{{sdk_installer_name}}"

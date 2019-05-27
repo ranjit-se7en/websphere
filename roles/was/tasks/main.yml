@@ -1,0 +1,247 @@
+---
+- name: Get the installed packages
+  become: true
+  become_user: "{{ was_user }}"
+  command:
+    '"{{ iim_path }}/eclipse/tools/imcl" listInstalledPackages'
+  ignore_errors: true
+  changed_when: false
+  register: installed
+
+- name: Set the version to 0
+  set_fact:
+    installed_version: "0"
+
+- name: Get the version of the installed WAS
+  set_fact:
+    installed_version: >
+      {{ installed.stdout|regex_search(was_imcl_package_regex, multiline=True)|regex_search("[0-9]+.[0-9]+.[0-9]+.[0-9]+$") }}
+  ignore_errors: true
+  when: installed is defined
+
+- name: Print if already at the version (or higher)
+  debug:
+    msg: Already at version {{ was_version }} or higher with version {{ installed_version }}.
+  when: installed_version is version_compare(was_version, '>=')
+
+- name: Uninstalling WAS {{ installed_version }}
+  become: true
+  become_user: "{{ was_user }}"
+  command: >
+    "{{ iim_path }}/eclipse/tools/imcl" "uninstall"
+    "{{ was_imcl_package_name }}"
+    "{{ jdk_imcl_package_name }}"
+    "-installationDirectory"
+    "{{ was_path }}"
+  when: (state == "absent") or (installed_version != "0" and (installed_version is version_compare(was_version, '<')))
+
+- name: Clear directory "{{ was_path }}"
+  become: true
+  become_user: "{{ was_user }}"
+  file:
+    name: "{{ was_path }}"
+    state: absent
+  when: (state == "absent") or (installed_version != "0" and (installed_version is version_compare(was_version, '<')))
+
+- name: Create the "{{ iim_tmp }}" directory
+  become: true
+  become_user: "{{ was_user }}"
+  file:
+    path: "{{ iim_tmp }}"
+    state: directory
+    mode: "{{ was_mode }}"
+    owner: "{{ was_user }}"
+    group: "{{ was_group }}"
+  when: (was_local_src is not defined) and (state == "installed") and (installed_version is version_compare(was_version, '<'))
+
+- name: Download WAS installation binary
+  become: true
+  become_user: "{{ was_user }}"
+  # copy:
+  #   src: "{{ was_src }}"
+  #   dest: "{{ iim_tmp }}"
+  #   mode: "{{ was_mode }}"
+  get_url:
+     url: "{{ was_url }}"
+     dest: "{{ iim_tmp }}"
+     mode: "{{ was_mode }}"
+  when: (was_local_src is not defined) and (state == "installed") and (installed_version is version_compare(was_version, '<'))
+
+- name: Remove old repo {{ was_repo }}
+  become: true
+  become_user: "{{ was_user }}"
+  file:
+    path: "{{ was_repo }}"
+    state: absent
+  when: (state == "installed") and (installed_version is version_compare(was_version, '<'))
+
+- name: Create the repo {{ was_repo }}
+  become: true
+  become_user: "{{ was_user }}"
+  file:
+    path: "{{ was_repo }}"
+    state: directory
+    mode: "{{ was_mode }}"
+  when: (state == "installed") and (installed_version is version_compare(was_version, '<'))
+
+- name: Unzip donwloaded {{ iim_tmp }}/{{ was_src|basename }} in the repo {{ was_repo }}
+  become: true
+  become_user: "{{ was_user }}"
+  shell:
+    cd "{{ was_repo }}"; unzip "{{ iim_tmp }}/{{ was_src|basename }}"
+  when: (was_local_src is not defined) and (state == "installed") and (installed_version is version_compare(was_version, '<'))
+
+- name: Unzip local {{ was_local_src }} in the repo {{ was_repo }}
+  become: true
+  become_user: "{{ was_user }}"
+  shell:
+    cd "{{ was_repo }}"; unzip "{{ was_local_src }}"
+  when: (was_local_src is defined) and (state == "installed") and (installed_version is version_compare(was_version, '<'))
+
+- name: Remove temporary installation file {{ iim_tmp }}/{{ was_src|basename }}
+  become: true
+  become_user: "{{ was_user }}"
+  file:
+    path: "{{ iim_tmp }}/{{ was_src|basename }}"
+    state: absent
+  ignore_errors: yes
+  when: was_local_src is not defined
+
+- name: Remove old repo {{ jdk_repo }}
+  become: true
+  become_user: "{{ was_user }}"
+  file:
+    path: "{{ jdk_repo }}"
+    state: absent
+  when: (state == "installed") and (installed_version is version_compare(was_version, '<'))
+
+- name: Create the repo {{ jdk_repo }}
+  become: true
+  become_user: "{{ was_user }}"
+  file:
+    path: "{{ jdk_repo }}"
+    state: directory
+    mode: "{{ was_mode }}"
+  when: (state == "installed") and (installed_version is version_compare(was_version, '<'))
+
+- name: Download JDK installation binary
+  become: true
+  become_user: "{{ was_user }}"
+  get_url:
+    url: "{{ jdk_url }}"
+    dest: "{{ iim_tmp }}"
+    mode: "{{ was_mode }}"
+  # copy:
+  #   src: "{{ jdk_src }}"
+  #   dest: "{{ iim_tmp }}"
+  #   mode: "{{ was_mode }}"
+  when: (jdk_local_src is not defined) and (state == "installed") and (installed_version is version_compare(was_version, '<'))
+
+- name: Unzip donwloaded {{ iim_tmp }}/{{ jdk_src|basename }} in the repo {{ jdk_repo }}
+  become: true
+  become_user: "{{ was_user }}"
+  shell:
+    cd "{{ jdk_repo }}"; unzip "{{ iim_tmp }}/{{ jdk_src|basename }}"
+  when: (jdk_local_src is not defined) and (state == "installed") and (installed_version is version_compare(was_version, '<'))
+
+- name: Unzip local {{ jdk_local_src }} in the repo {{ jdk_repo }}
+  become: true
+  become_user: "{{ was_user }}"
+  shell:
+    cd "{{ jdk_repo }}"; unzip "{{ jdk_local_src }}"
+  when: (jdk_local_src is defined) and (state == "installed") and (installed_version is version_compare(was_version, '<'))
+
+- name: Remove temporary installation file {{ iim_tmp }}/{{ jdk_src|basename }}
+  become: true
+  become_user: "{{ was_user }}"
+  file:
+    path: "{{ iim_tmp }}/{{ jdk_src|basename }}"
+    state: absent
+  ignore_errors: yes
+  when: jdk_local_src is not defined
+
+- name: Run IIM at {{ iim_path }} to install WAS with JDK at {{ was_path }}
+  become: true
+  become_user: "{{ was_user }}"
+  command: >
+    "{{ iim_path }}/eclipse/tools/imcl"
+    "install" "{{ was_imcl_package_name }}"
+    "{{ jdk_imcl_package_name }}"
+    "-repositories"
+    "{{ was_repo }},{{ jdk_repo }}"
+    "-installationDirectory"
+    "{{ was_path }}"
+    "-sharedResourcesDirectory"
+    "{{ ibm_shared_path }}"
+    "-accessRights"
+    "nonAdmin"
+    "-acceptLicense"
+  when: (state == "installed") and (installed_version is version_compare(was_version, '<'))
+
+- name: Clean up repo {{ was_repo }}
+  become: true
+  become_user: "{{ was_user }}"
+  file:
+    path: "{{ was_repo }}"
+    state: absent
+  ignore_errors: yes
+
+- name: Clean up repo {{ jdk_repo }}
+  become: true
+  become_user: "{{ was_user }}"
+  file:
+    path: "{{ jdk_repo }}"
+    state: absent
+  ignore_errors: yes
+
+- name: Set _profile_path based on profile_name
+  set_fact:
+    _profile_path: "{{ was_profiles_path }}/{{ profile_name }}"
+  when: profile_name is defined and profile_path is not defined
+
+- name: Set _profile_path based on was_profile_path
+  set_fact:
+    _profile_path: "{{ was_profile_path }}"
+  when: profile_path is defined
+
+- name: Check profile {{ profile_name }}
+  become: true
+  become_user: "{{ was_user }}"
+  command: "{{ was_path }}/bin/manageprofiles.sh -getPath -profileName {{ profile_name }}"
+  register: profile_status
+  changed_when: false
+  failed_when: ((profile_status.rc == 0) and (_profile_path not in profile_status.stdout_lines))
+  when: profile_name is defined
+
+- name: Create profile {{ profile_name }}
+  become: true
+  become_user: "{{ was_user }}"
+  command: >
+    {{ was_path }}/bin/manageprofiles.sh
+    -create
+    -profileName '{{ profile_name }}'
+    -profilePath '{{ _profile_path }}'
+    -templatePath '{{ was_path }}/profileTemplates/{{ profile_template }}'
+    {{ profile_options|default('') }}
+  when: profile_name is defined and profile_template is defined and profile_status.rc != 0
+
+# - name: Status of deployment manager
+  # become: true
+  # become_user: "{{ was_user }}"
+  # shell: ps -ef | grep {{ _profile_path }} | grep -v grep | grep dmgr | sed 's/\s\s*/ /g' | cut -d" " -f2
+  # register: dmgr
+  # changed_when: false
+  # failed_when: false
+  # when: (profile_state == "started" or profile_state == "restarted") and _profile_path is defined and profile_template == "management"
+
+# - name: Starting deployment manager
+  # become: true
+  # become_user: "{{ was_user }}"
+  # command: "{{ _profile_path }}/bin/startManager.sh"
+  # when: (profile_state == "started" or profile_state == "restarted") and _profile_path is defined and profile_template == "management" and dmgr.stdout == ""
+
+- name: Starting Server Profile for {{ profile_name }}
+  become: true
+  become_user: "{{ was_user }}"
+  command: "{{ _profile_path }}/bin/startServer.sh {{ profile_name }}"
+  when: profile_name is defined and profile_template is defined and profile_status.rc != 0

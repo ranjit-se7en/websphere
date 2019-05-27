@@ -1,0 +1,9 @@
+# One line command
+{{ jython_command }}
+
+# Save & Sync
+AdminConfig.save()
+if {{ nodename|default("None") }} == None:
+    AdminNodeManagement.syncActiveNodes()
+else:
+    AdminNodeManagement.syncNode("{{ nodename|default('None') }}")

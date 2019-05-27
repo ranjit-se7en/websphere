@@ -1,0 +1,2 @@
+[was]
+10.128.24.39 ansible_ssh_port=22 ansible_ssh_user=root ansible_ssh_pass=Password1!

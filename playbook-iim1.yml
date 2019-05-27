@@ -1,0 +1,46 @@
+---
+- name: IBM Installation Manager installation example playbook
+  hosts: was
+  vars:
+    ibm_user: was
+    ibm_root: /soft/IBM
+  pre_tasks:
+    - name: Install setfacl and (un)zip
+      become: yes
+      apt:
+        name: ['acl', 'zip']
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install setfacl and unzip on RedHat
+      become: yes
+      yum:
+        name: ['acl', 'unzip']
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Create the {{ibm_user}} user
+      become: true
+      become_user: root
+      user:
+        name: "{{ibm_user}}"
+
+    - name: Create the {{ibm_root}} directory
+      become: true
+      become_user: root
+      file:
+        path: "{{ibm_root}}"
+        state: directory
+        owner: "{{ibm_user}}"
+        group: "{{ibm_user}}"
+        mode: 0750
+
+    - name: Copy the installation zip to /tmp
+      become: true
+      become_user: "{{ibm_user}}"
+      copy:
+        src: "/root/ranjit/was-solution/InstalMgr1.6.2_LNX_X86_64_WAS_8.5.5.zip"
+        dest: /tmp/
+
+  roles:
+    - { role: iim, iim_local_src: "/tmp/InstalMgr1.6.2_LNX_X86_64_WAS_8.5.5.zip", iim_user: "{{ibm_user}}" }

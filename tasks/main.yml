@@ -1,0 +1,54 @@
+---
+- debug: msg="WebSphere Application Server install & configure"
+
+- name: main - include ais_pre_req task
+  include: pre_task.yml
+
+# - name: main - include ais_pre_req task
+#   include: download_packages.yml
+
+
+  # pre_tasks:
+  #   - name: Install setfacl and (un)zip
+  #     become: yes
+  #     apt:
+  #       name: ['acl', 'zip']
+  #       state: present
+  #     when: ansible_os_family == "Debian"
+  #
+  #   - name: Install setfacl and unzip on RedHat
+  #     become: yes
+  #     yum:
+  #       name: ['acl', 'unzip', 'psmisc']
+  #       state: present
+  #     when: ansible_os_family == "RedHat"
+  #
+  #   - name: Create the {{ibm_user}} user
+  #     become: true
+  #     become_user: root
+  #     user:
+  #       name: "{{ibm_user}}"
+  #
+  #   - name: Create the {{ibm_root}} directory
+  #     become: true
+  #     become_user: root
+  #     file:
+  #       path: "{{ibm_root}}"
+  #       state: directory
+  #       owner: "{{ibm_user}}"
+  #       group: "{{ibm_user}}"
+  #       mode: 0750
+
+- include: ../.././roles/websphere/roles/iim/tasks/main.yml
+    iim_src="{{iim_install_bin}}"
+    iim_user="{{ibm_user}}"
+
+- include: ../.././roles/websphere/roles/was/tasks/main.yml
+    was_src="{{was_install_bin}}"
+    jdk_src="{{sdk_install_bin}}"
+    was_user="{{ibm_user}}"
+    profile_name="server1"
+    profile_template="default"
+    profile_options="-federateLater false -dmgrHost localhost -dmgrPort 8879"
+# - { role: iim, iim_src: '{{ Download_Folder.path }}/agent.installer.linux.gtk.x86_64_1.8.5000.20160506_1125.zip', iim_user: "{{ibm_user}}" }
+# - { role: was, was_src: '{{ Download_Folder.path }}/WAS.REPO.9000.BASE.zip', jdk_src: '{{ Download_Folder.path }}/ibm-java-sdk-8.0-3.0-linux-x64-installmgr.zip', was_user: "{{ibm_user}}", profile_name: "default", profile_template: "default", profile_options: "-federateLater false -dmgrHost localhost -dmgrPort 8879"}
